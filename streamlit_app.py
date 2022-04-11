@@ -65,9 +65,9 @@ def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
 
 default_budget = 10000000
 budget = st.number_input('투자 금액', min_value=0, value=default_budget, step=10000)
-default_currency = 1200
+default_currency = 1200.0
 currency = st.number_input('환율',
-min_value=1000, value=default_currency, step=0.1)
+min_value=1000.0, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
