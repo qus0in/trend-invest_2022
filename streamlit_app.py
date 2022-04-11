@@ -1,38 +1,87 @@
-from collections import namedtuple
-import altair as alt
-import math
-import pandas as pd
 import streamlit as st
+import yfinance as yf
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
 
-"""
-# Welcome to Streamlit!
+pd.options.display.float_format = '{:,.2f}'.format
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+def get_parameters(page, size):
+    # page * size만큼 offset 전진 (size는 25로 예상)
+    return {
+        "tm": 77609, # 레버리지/인버스 필터링 코드
+        "offset": (page - 1) * size,
+        # 기본적으로 3개월 평균 거래량으로 정렬
+        "sort": "three_month_average_volume",
+        "order": "desc" # 내림차순 (큰 것이 먼저)
+    }
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+def get_symbols():
+    url = "https://etfdb.com/data_set/"
+    page, size = 1, 25 # 한 번에 전체 조회가 불가능하므로 page를 증가시키면서 조회해야함
+    symbols = [] # 검색된 레버리지 코드들
+    while True: # 계속 반복
+        params = get_parameters(page, size) # 조회된 size만큼 전진해서 요청
+        response = requests.get(url, params=params).json()
+        # json 포맷으로 데이터 받아옴
+        rows = response['rows'] # 받아온 데이터 요소들
+        # print(rows)
+        if len(rows) == 0: return symbols # 값이 없으면 반복 종료
+        # 받은 데이터가 태그로 덮여있는데 BS로 태그 제거하고 텍스트만 남기기
+        symbol_mapper = lambda x: BeautifulSoup(x['symbol'], features='lxml').text
+        # 텍스트로 된 새로운 코드 리스트를 앞서 정의한 코드 리스트에 연결
+        items = [symbol_mapper(r) for r in rows]
+        # print(items)
+        symbols.extend(items)
+        page+=1 # 다음 장으로
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+def get_momentum(df, days=(3, 5, 8, 13)):
+    get_er = lambda x: (x[-1] / x[0]) - 1
+    return pd.concat(
+        [df['Open'].rolling(d).apply(get_er) for d in days], axis=1
+        ).mean(axis=1).iloc[-1]
 
+def find_item(count=5):
+    momentums = [(s, get_momentum(yf.Ticker(s).history()))
+    for s in get_symbols() if s not in ['SSG']]
+    df_m = pd.DataFrame(momentums, columns=['symbol', 'momentum']
+                    ).sort_values('momentum', ascending=False
+                    ).set_index('symbol')
+    return df_m.head(count)
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
+    df = yf.Ticker(ticker).history()
+    df['Range'] = df['High'] - df['Low']
+    df['Noise'] = abs(df['Close'] - df['Open']) / df['Range']
+    df['Noise13'] = df['Noise'].rolling(13).mean()
+    df['TargetP'] = df['Open'] + (df['Range'] * df['Noise13']).shift(1)
+    df['Volatility'] = df['Range'] / df['Close']
+    df['TargetV'] = limit / df['Volatility'].shift(1)
+    ma = lambda d: df['Open'].rolling(d).mean() <= df['Open']
+    df['MA'] = sum([ma(d) for d in ma_days]) / len(ma_days)
+    df['Price'] = df['TargetP']
+    df['Score'] = df['MA'] * df['TargetV']
+    return df.iloc[-1]
 
-    Point = namedtuple('Point', 'x y')
-    data = []
+default_budget = 10000000
+budget = st.number_input('투자 금액', min_value=0, value=default_budget, step=10000)
 
-    points_per_turn = total_points / num_turns
+if st.button('데이터 불러오기'):
+    with st.spinner('데이터 로딩 중'):
+        item = find_item()
+        
+        score = pd.concat([get_score(i) for i in item.index], axis=1)
 
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
+        st.header('시가 기준일')
+        st.write(score.columns[0].date())
+        score.columns = item.index
 
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+        score_t = score.transpose()
+        score_t['Amount'] = (budget * score_t['Score'] / len(score_t)).apply(int) 
+        sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
+
+        st.header('베팅 총액')
+        st.write(sum_amount)
+
+        st.header('목표가 및 비중')
+        st.write(score_t[['Price', 'Amount']])
