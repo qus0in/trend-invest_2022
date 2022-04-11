@@ -81,7 +81,7 @@ if st.button('데이터 불러오기'):
 
         score_t = score.transpose()
         score_t['Amount'] = (budget * score_t['Score'] / len(score_t)).apply(int) 
-        score_t['Currency'] = score_t['Amount'] / currency
+        score_t['Currency'] = (score_t['Amount'] / currency).apply(int)
         sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
 
         st.header('베팅 총액')
