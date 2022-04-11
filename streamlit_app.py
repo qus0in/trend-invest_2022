@@ -65,6 +65,8 @@ def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
 
 default_budget = 10000000
 budget = st.number_input('투자 금액', min_value=0, value=default_budget, step=10000)
+currency = st.number_input('환율',
+min_value=1000, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
@@ -78,10 +80,11 @@ if st.button('데이터 불러오기'):
 
         score_t = score.transpose()
         score_t['Amount'] = (budget * score_t['Score'] / len(score_t)).apply(int) 
+        score_t['Currency'] = score_t['Amount'] / currency
         sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
 
         st.header('베팅 총액')
         st.write(sum_amount)
 
         st.header('목표가 및 비중')
-        st.write(score_t[['Price', 'Amount']])
+        st.write(score_t[['Price', 'Amount', 'Currency']])
