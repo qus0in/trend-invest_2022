@@ -75,7 +75,7 @@ min_value=1000.0, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
-        item = find_item()
+        item = find_item(10)
         
         score = pd.concat([get_score(i) for i in item.index], axis=1)
 
