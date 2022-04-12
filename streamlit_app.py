@@ -21,6 +21,7 @@ def get_symbols():
     page, size = 1, 25 # 한 번에 전체 조회가 불가능하므로 page를 증가시키면서 조회해야함
     symbols = [] # 검색된 레버리지 코드들
     while True: # 계속 반복
+        if (page == 5): return symbols
         params = get_parameters(page, size) # 조회된 size만큼 전진해서 요청
         response = requests.get(url, params=params).json()
         # json 포맷으로 데이터 받아옴
@@ -58,13 +59,16 @@ def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
     df['Volatility'] = df['Range'] / df['Close']
     df['TargetV'] = limit / df['Volatility'].shift(1)
     ma = lambda d: df['Open'].rolling(d).mean() <= df['Open']
-    df['MA'] = sum([ma(d) for d in ma_days]) / len(ma_days)
+    df['MA'] = sum([ma(d) for d in ma_days]) + 1
     df['Price'] = df['TargetP']
     df['Score'] = df['MA'] * df['TargetV']
+    # print(df)
     return df.iloc[-1]
 
 default_budget = 10000000
-budget = st.number_input('투자 금액', min_value=0, value=default_budget, step=10000)
+budget = st.number_input('투자금',
+min_value=1000000, value=default_budget, step=1000000)
+
 default_currency = 1200.0
 currency = st.number_input('환율',
 min_value=1000.0, value=default_currency, step=0.1)
@@ -80,7 +84,7 @@ if st.button('데이터 불러오기'):
         score.columns = item.index
 
         score_t = score.transpose()
-        score_t['Amount'] = (budget * score_t['Score'] / len(score_t)).apply(int) 
+        score_t['Amount'] = (budget * score_t['Score'] * 0.02).apply(int) 
         score_t['Currency'] = (score_t['Amount'] / currency).apply(int)
         sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
 
