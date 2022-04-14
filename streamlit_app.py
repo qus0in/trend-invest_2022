@@ -44,7 +44,7 @@ def get_momentum(df, days=(3, 5, 8, 13)):
 
 def find_item(count=5):
     momentums = [(s, get_momentum(yf.Ticker(s).history()))
-    for s in get_symbols() if s not in ['SSG', 'TTT', 'SRTY', 'REW', 'NUGT', 'TECS', 'TBT', 'QID']]
+    for s in get_symbols() if s not in ['SSG', 'TTT', 'SRTY', 'REW', 'TECS', 'TBT', 'QID']]
     df_m = pd.DataFrame(momentums, columns=['symbol', 'momentum']
                     ).sort_values('momentum', ascending=False
                     ).set_index('symbol')
