@@ -47,6 +47,7 @@ def find_item(count=5):
                 'SSG', 'TTT', 'SRTY', 'REW', 'TECS',
                 'TBT', 'QID', 'SPXU', 'SPXS', 'TWM',
                 'SDOW', 'DXD', 'UDOW', 'SSO', 'UWM',
+                'JNUG'
               ]
     momentums = [(s, get_momentum(yf.Ticker(s).history()))
     for s in get_symbols() if s not in exclude]
