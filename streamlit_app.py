@@ -43,8 +43,13 @@ def get_momentum(df, days=(3, 5, 8, 13)):
         ).mean(axis=1).iloc[-1]
 
 def find_item(count=5):
+    exclude = [
+                'SSG', 'TTT', 'SRTY', 'REW', 'TECS',
+                'TBT', 'QID', 'SPXU', 'SPXS', 'TWM',
+                'SDOW', 'DXD', 'UDOW', 'SSO', 'UWM',
+              ]
     momentums = [(s, get_momentum(yf.Ticker(s).history()))
-    for s in get_symbols() if s not in ['SSG', 'TTT', 'SRTY', 'REW', 'TECS', 'TBT', 'QID']]
+    for s in get_symbols() if s not in exclude]
     df_m = pd.DataFrame(momentums, columns=['symbol', 'momentum']
                     ).sort_values('momentum', ascending=False
                     ).set_index('symbol')
@@ -80,16 +85,26 @@ if st.button('데이터 불러오기'):
         score = pd.concat([get_score(i) for i in item.index], axis=1)
 
         st.header('시가 기준일')
-        st.write(score.columns[0].date())
+        st.write(score.columns)
         score.columns = item.index
 
         score_t = score.transpose()
         score_t['Amount'] = (budget * score_t['Score'] * 0.02).apply(int) 
         score_t['Currency'] = (score_t['Amount'] / currency).apply(int)
+        inverse = ['SOXS', 'SQQQ', 'LABD', 'FAZ', 'YANG',
+                   'UVXY', 'AGQ', 'TZA']
+        # st.write(score_t.index)
+        # print(score_t.index)
+        score_t['Inverse'] = score_t.index.to_series().apply(lambda x: x in inverse)
         sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
 
         st.header('베팅 총액')
         st.write(sum_amount)
 
         st.header('목표가 및 비중')
-        st.write(score_t[['Price', 'Amount', 'Currency']])
+        st.write(score_t[['Price', 'Amount', 'Currency', 'Inverse']])
+        
+        st.subheader(f"Bull 합계")
+        st.write(f"₩{score_t[score_t['Inverse'].apply(lambda x: not x)]['Amount'].sum()}")
+        st.subheader(f"Bear 합계")
+        st.write(f"₩{score_t[score_t['Inverse']]['Amount'].sum()}")
