@@ -21,7 +21,7 @@ def get_symbols():
     page, size = 1, 25 # 한 번에 전체 조회가 불가능하므로 page를 증가시키면서 조회해야함
     symbols = [] # 검색된 레버리지 코드들
     while True: # 계속 반복
-        if (page == 5): return symbols
+        if (page == 3): return symbols
         params = get_parameters(page, size) # 조회된 size만큼 전진해서 요청
         response = requests.get(url, params=params).json()
         # json 포맷으로 데이터 받아옴
@@ -75,7 +75,7 @@ min_value=1000.0, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
-        item = find_item(10)
+        item = find_item(5)
         
         score = pd.concat([get_score(i) for i in item.index], axis=1)
 
