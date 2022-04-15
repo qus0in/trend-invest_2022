@@ -71,7 +71,7 @@ def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
     # print(df)
     return df.iloc[-1]
 
-default_budget = 10000000
+default_budget = 20000000
 budget = st.number_input('투자금',
 min_value=1000000, value=default_budget, step=1000000)
 
@@ -92,20 +92,12 @@ if st.button('데이터 불러오기'):
         score_t = score.transpose()
         score_t['Amount'] = (budget * score_t['Score'] * 0.02).apply(int) 
         score_t['Currency'] = (score_t['Amount'] / currency).apply(int)
-        inverse = ['SOXS', 'SQQQ', 'LABD', 'FAZ', 'YANG',
-                   'UVXY', 'AGQ', 'TZA']
         # st.write(score_t.index)
         # print(score_t.index)
-        score_t['Inverse'] = score_t.index.to_series().apply(lambda x: x in inverse)
         sum_amount = int(score_t['Amount'].sum() / 10000 + 1) * 10000
 
         st.header('베팅 총액')
         st.write(sum_amount)
 
         st.header('목표가 및 비중')
-        st.write(score_t[['Price', 'Amount', 'Currency', 'Inverse']])
-        
-        st.subheader(f"Bull 합계")
-        st.write(f"₩{score_t[score_t['Inverse'].apply(lambda x: not x)]['Amount'].sum()}")
-        st.subheader(f"Bear 합계")
-        st.write(f"₩{score_t[score_t['Inverse']]['Amount'].sum()}")
+        st.write(score_t[['Price', 'Amount', 'Currency']])
