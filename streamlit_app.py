@@ -56,7 +56,7 @@ def find_item(count=5):
                     ).set_index('symbol')
     return df_m.head(count)
 
-def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
+def get_score(ticker: str, limit=0.02, ma_days=(3, 5, 8, 13)):
     df = yf.Ticker(ticker).history()
     df['Range'] = df['High'] - df['Low']
     df['Noise'] = abs(df['Close'] - df['Open']) / df['Range']
@@ -65,7 +65,7 @@ def get_score(ticker: str, limit=0.03, ma_days=(3, 5, 8, 13)):
     df['Volatility'] = df['Range'] / df['Close']
     df['TargetV'] = limit / df['Volatility'].shift(1)
     ma = lambda d: df['Open'].rolling(d).mean() <= df['Open']
-    df['MA'] = sum([ma(d) for d in ma_days]) + 1
+    df['MA'] = sum([ma(d) for d in ma_days])
     df['Price'] = df['TargetP']
     df['Score'] = df['MA'] * df['TargetV']
     # print(df)
@@ -81,12 +81,12 @@ min_value=1000.0, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
-        item = find_item(5)
+        item = find_item(10)
         
         score = pd.concat([get_score(i) for i in item.index], axis=1)
 
         st.header('시가 기준일')
-        st.write(score.columns)
+        st.write(score.columns.tolist())
         score.columns = item.index
 
         score_t = score.transpose()
