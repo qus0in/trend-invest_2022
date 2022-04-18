@@ -81,7 +81,7 @@ min_value=1000.0, value=default_currency, step=0.1)
 
 if st.button('데이터 불러오기'):
     with st.spinner('데이터 로딩 중'):
-        item = find_item(10)
+        item = find_item(5)
         
         score = pd.concat([get_score(i) for i in item.index], axis=1)
 
@@ -90,7 +90,7 @@ if st.button('데이터 불러오기'):
         score.columns = item.index
 
         score_t = score.transpose()
-        score_t['Amount'] = (budget * score_t['Score'] * 0.02).apply(int) 
+        score_t['Amount'] = (budget * score_t['Score'] * 0.03).apply(int) 
         score_t['Currency'] = (score_t['Amount'] / currency).apply(int)
         # st.write(score_t.index)
         # print(score_t.index)
